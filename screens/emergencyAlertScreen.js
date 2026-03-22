@@ -107,15 +107,15 @@ export default function EmergencyAlertScreen({ navigation }) {
     return () => {};
   }, []);
 
-  // useEffect(() => {
-  //   DropDetectionService.start(() => {
-  //     setDropDetected(true);
-  //   });
+  useEffect(() => {
+    DropDetectionService.start(() => {
+      setDropDetected(true);
+    });
 
-  //   return () => {
-  //     DropDetectionService.stop();
-  //   };
-  // }, []);
+    return () => {
+      DropDetectionService.stop();
+    };
+  }, []);
   useEffect(() => {
     const loadSettings = async () => {
       try {

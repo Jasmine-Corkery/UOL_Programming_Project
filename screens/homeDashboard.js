@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
 import { calculateCommunityResilience } from '../services/communityResilienceEngine';
 import * as Location from 'expo-location';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const fallbackAlerts = [
   {
@@ -131,8 +132,8 @@ async function getReadableLocation(title, coords) {
 }
 
 export default function HomeDashboard({ navigation }) {
-  const { largeIcons } = useContext(AppContext);
-  const [darkMode, setDarkMode] = useState(false);
+  const { largeIcons, darkMode, colorBlindMode } = useContext(AppContext);
+  const insets = useSafeAreaInsets();
   const [cri, setCri] = useState(0);
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [topAlert, setTopAlert] = useState(null);
@@ -190,11 +191,6 @@ export default function HomeDashboard({ navigation }) {
 
     const loadData = async () => {
       try {
-        const dark = await AsyncStorage.getItem('darkMode');
-        if (dark !== null) {
-          setDarkMode(JSON.parse(dark));
-        }
-
         const criResult = calculateCommunityResilience({
           preparednessScore: 0,
           responseRate: 70,
@@ -224,22 +220,43 @@ export default function HomeDashboard({ navigation }) {
   const scale = largeIcons ? 1.3 : 1;
 
   const getSeverityColor = severity => {
-    switch (severity) {
-      case 'High':
-        return '#e53935';
-      case 'Medium':
-        return '#f4b400';
-      case 'Low':
-        return '#34a853';
-      default:
-        return '#9e9e9e';
+    if (colorBlindMode) {
+      // Accessible palette (no red/green reliance)
+      switch (severity) {
+        case 'High':
+          return '#7A1C1C'; // dark maroon
+        case 'Medium':
+          return '#B26A00'; // dark amber
+        case 'Low':
+          return '#1F4E79'; // dark blue
+        default:
+          return '#5A5A5A';
+      }
+    } else {
+      // Normal colors
+      switch (severity) {
+        case 'High':
+          return '#e53935'; // red
+        case 'Medium':
+          return '#f4b400'; // yellow
+        case 'Low':
+          return '#34a853'; // green
+        default:
+          return '#9e9e9e';
+      }
     }
   };
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[
+        styles.contentContainer,
+        {
+          paddingTop: insets.top + 12,
+          paddingBottom: insets.bottom + 24,
+        },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <View style={[styles.banner, { backgroundColor: colors.card }]}>
@@ -409,7 +426,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 14,
     marginHorizontal: 12,
-    marginTop: 12,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 6,
