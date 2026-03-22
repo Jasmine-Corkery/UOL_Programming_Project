@@ -13,12 +13,12 @@ export function calculatePreparednessScore({
     score,
     category:
       score > 75
-        ? "Highly Prepared"
+        ? 'Highly Prepared'
         : score > 50
-          ? "Moderately Prepared"
-          : "Low Preparedness",
+          ? 'Moderately Prepared'
+          : 'Low Preparedness',
   };
 }
 export function getPreparednessScore() {
-  return currentPreparednessScore;
+  return 0;
 }

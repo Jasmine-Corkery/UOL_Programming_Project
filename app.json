@@ -1,4 +1,7 @@
 {
-  "name": "DisasterPrepApp",
-  "displayName": "DisasterPrepApp"
+  "expo": {
+    "name": "DisasterPrepApp",
+    "slug": "disasterprepapp",
+    "jsEngine": "hermes"
+  }
 }

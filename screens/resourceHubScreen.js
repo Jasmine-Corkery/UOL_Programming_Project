@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
 
 export default function ResourceHubScreen() {
+  console.log('RESOURCES RENDERING');
   const { largeIcons } = useContext(AppContext);
   const [darkMode, setDarkMode] = useState(false);
   const colors = darkMode ? darkColors : lightColors;

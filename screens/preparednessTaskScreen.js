@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
 
 export default function PreparednessTaskScreen() {
+  console.log('PREPAREDNESS RENDERING');
   const { largeIcons } = useContext(AppContext);
   const [darkMode, setDarkMode] = useState(false);
   const [items, setItems] = useState([

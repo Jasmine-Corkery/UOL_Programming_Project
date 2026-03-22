@@ -1,21 +1,22 @@
-import * as React from 'react';
+import { StatusBar } from 'expo-status-bar';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-
-import preparednessTaskScreen from './screens/PreparednessTaskScreen';
-import emergencyAlertScreen from './screens/EmergencyAlertScreen';
-import resourceHubScreen from './screens/ResourceHubScreen';
+import LoginScreen from './screens/loginScreen';
+import HomeDashboard from './screens/homeDashboard';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen name="Task" component={preparednessTaskScreen} />
-        <Stack.Screen name="Alert" component={emergencyAlertScreen} />
-        <Stack.Screen name="Resources" component={resourceHubScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Main" component={HomeDashboard} />
+        </Stack.Navigator>
+      </NavigationContainer>
+      <StatusBar style="auto" />
+    </>
   );
 }

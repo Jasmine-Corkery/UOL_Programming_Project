@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
-import { getConnectivityScore } from '../services/meshService';
 import { calculateCommunityResilience } from '../services/communityResilienceEngine';
 
 const fallbackAlerts = [
@@ -19,7 +18,7 @@ const fallbackAlerts = [
     severity: 'High',
     location: 'Florida Coast',
     time: '2 hours ago',
-    title: 'Category 4 Hurricane',
+    title: 'Hurricane Warning - Florida Coast',
   },
   {
     id: 'demo-2',
@@ -42,7 +41,6 @@ const fallbackAlerts = [
 export default function HomeDashboard({ navigation }) {
   const { largeIcons } = useContext(AppContext);
   const [darkMode, setDarkMode] = useState(false);
-  const [preparednessScore, setPreparednessScore] = useState(0);
   const [cri, setCri] = useState(0);
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [topAlert, setTopAlert] = useState(null);
@@ -55,7 +53,6 @@ export default function HomeDashboard({ navigation }) {
         );
 
         if (!res.ok) {
-          console.warn('API unavailable, using fallback alerts.');
           setActiveAlerts(fallbackAlerts);
           setTopAlert(fallbackAlerts[0]);
           return;
@@ -63,23 +60,30 @@ export default function HomeDashboard({ navigation }) {
 
         const data = await res.json();
 
-        if (!data.events || data.events.length === 0) {
-          console.warn('No live alerts found, using fallback.');
+        if (!data?.events || data.events.length === 0) {
           setActiveAlerts(fallbackAlerts);
           setTopAlert(fallbackAlerts[0]);
           return;
         }
 
-        const mappedAlerts = data.events.map((event, index) => {
+        const mappedAlerts = data.events.slice(0, 5).map((event, index) => {
           const geo = event.geometry?.[0];
+          const coords = Array.isArray(geo?.coordinates)
+            ? geo.coordinates
+            : null;
+
+          const safeLocation =
+            coords &&
+            typeof coords[0] === 'number' &&
+            typeof coords[1] === 'number'
+              ? `${coords[1].toFixed(2)}, ${coords[0].toFixed(2)}`
+              : 'Unknown location';
 
           return {
-            id: event.id || index,
+            id: event.id || `event-${index}`,
             type: event.categories?.[0]?.title || 'Disaster',
             severity: 'High',
-            location: geo?.coordinates
-              ? `${geo.coordinates[1]?.toFixed(2)}, ${geo.coordinates[0]?.toFixed(2)}`
-              : 'Unknown location',
+            location: safeLocation,
             time: geo?.date
               ? new Date(geo.date).toLocaleString()
               : 'Unknown time',
@@ -88,9 +92,9 @@ export default function HomeDashboard({ navigation }) {
         });
 
         setActiveAlerts(mappedAlerts);
-        setTopAlert(mappedAlerts[0]);
+        setTopAlert(mappedAlerts[0] || fallbackAlerts[0]);
       } catch (error) {
-        console.error('Network error, using fallback alerts.', error);
+        console.error('FETCH FAILED:', error);
         setActiveAlerts(fallbackAlerts);
         setTopAlert(fallbackAlerts[0]);
       }
@@ -99,27 +103,29 @@ export default function HomeDashboard({ navigation }) {
     const loadData = async () => {
       try {
         const dark = await AsyncStorage.getItem('darkMode');
-        if (dark !== null) setDarkMode(JSON.parse(dark));
-
-        const savedScore = await AsyncStorage.getItem(
-          'currentPreparednessScore',
-        );
-        const parsedScore = savedScore ? JSON.parse(savedScore) : 0;
-        setPreparednessScore(parsedScore);
+        if (dark !== null) {
+          setDarkMode(JSON.parse(dark));
+        }
 
         const criResult = calculateCommunityResilience({
-          preparednessScore: parsedScore,
+          preparednessScore: 0,
           responseRate: 70,
           safeZoneScore: 80,
           emergencyAccessScore: 75,
-          connectivityScore: getConnectivityScore(),
+          connectivityScore: 50,
+          hazardType: 'General',
+          severityLevel: 0,
+          daysSincePreparednessUpdate: 0,
+          infrastructureStability: 100,
         });
 
         setCri(Number.isFinite(criResult?.cri) ? criResult.cri : 0);
 
         await fetchAlerts();
       } catch (error) {
-        console.error('Error loading dashboard data:', error);
+        console.error('LOAD DATA FAILED:', error);
+        setActiveAlerts(fallbackAlerts);
+        setTopAlert(fallbackAlerts[0]);
       }
     };
 
@@ -132,64 +138,64 @@ export default function HomeDashboard({ navigation }) {
   const getSeverityColor = severity => {
     switch (severity) {
       case 'High':
-        return '#dc3545';
+        return '#e53935';
       case 'Medium':
-        return '#ffc107';
+        return '#f4b400';
       case 'Low':
-        return '#28a745';
+        return '#34a853';
       default:
-        return '#6c757d';
+        return '#9e9e9e';
     }
   };
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
     >
-      {/* Disaster Banner */}
-      {topAlert && (
-        <View style={[styles.banner, { backgroundColor: colors.card }]}>
-          <Text
-            style={[
-              styles.bannerIcon,
-              { fontSize: 40 * scale, color: colors.text },
-            ]}
-          >
-            🚨
+      <View style={[styles.banner, { backgroundColor: colors.card }]}>
+        <Text
+          style={[
+            styles.bannerIcon,
+            { fontSize: 36 * scale, color: colors.text },
+          ]}
+        >
+          🚨
+        </Text>
+
+        <View style={[styles.criCard, { backgroundColor: colors.background }]}>
+          <Text style={[styles.criTitle, { color: colors.text }]}>
+            Community Resilience Index
           </Text>
-          <View
-            style={[styles.criCard, { backgroundColor: colors.background }]}
-          >
-            <Text style={[styles.criTitle, { color: colors.text }]}>
-              Community Resilience Index
-            </Text>
-            <Text style={[styles.criScore, { color: colors.accent }]}>
-              {cri}/100
-            </Text>
-            <Text style={[styles.criLabel, { color: colors.subtitle }]}>
-              {cri > 75
-                ? 'High Resilience'
-                : cri > 50
-                  ? 'Moderate Resilience'
-                  : 'Low Resilience'}
-            </Text>
-          </View>
-          <Text style={[styles.bannerTitle, { color: colors.text }]}>
-            Active Disaster Alert
-          </Text>
-          <Text style={[styles.bannerText, { color: colors.text }]}>
-            {topAlert.type} - {topAlert.title}
-          </Text>
-          <Text style={[styles.bannerSubtext, { color: colors.subtitle }]}>
-            Evacuation recommended in affected areas
+          <Text style={[styles.criScore, { color: '#2563eb' }]}>{cri}/100</Text>
+          <Text style={[styles.criLabel, { color: colors.subtitle || '#666' }]}>
+            {cri >= 75
+              ? 'Low Risk'
+              : cri >= 50
+                ? 'Moderate Risk'
+                : cri >= 30
+                  ? 'High Risk'
+                  : 'Critical Risk'}
           </Text>
         </View>
-      )}
 
-      {/* Quick Action Buttons */}
-      <View
-        style={[styles.quickActions, { backgroundColor: colors.background }]}
-      >
+        <Text style={[styles.bannerTitle, { color: colors.text }]}>
+          Active Disaster Alert
+        </Text>
+
+        <Text style={[styles.bannerText, { color: colors.text }]}>
+          {topAlert ? topAlert.title : 'Loading...'}
+        </Text>
+
+        <Text
+          style={[styles.bannerSubtext, { color: colors.subtitle || '#666' }]}
+        >
+          Evacuation recommended in affected areas
+        </Text>
+      </View>
+
+      <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Quick Actions
         </Text>
@@ -198,12 +204,7 @@ export default function HomeDashboard({ navigation }) {
           <TouchableOpacity
             style={[styles.quickButton, { backgroundColor: colors.card }]}
           >
-            <Text
-              style={[
-                styles.quickButtonIcon,
-                { fontSize: 36 * scale, color: colors.text },
-              ]}
-            >
+            <Text style={[styles.quickButtonIcon, { fontSize: 28 * scale }]}>
               🏠
             </Text>
             <Text style={[styles.quickButtonText, { color: colors.text }]}>
@@ -213,15 +214,10 @@ export default function HomeDashboard({ navigation }) {
 
           <TouchableOpacity
             style={[styles.quickButton, { backgroundColor: colors.card }]}
-            onPress={() => navigation.navigate('Alerts')}
+            onPress={() => navigation?.navigate?.('Alerts')}
           >
-            <Text
-              style={[
-                styles.quickButtonIcon,
-                { fontSize: 36 * scale, color: colors.text },
-              ]}
-            >
-              📢
+            <Text style={[styles.quickButtonIcon, { fontSize: 28 * scale }]}>
+              📣
             </Text>
             <Text style={[styles.quickButtonText, { color: colors.text }]}>
               View Alerts
@@ -233,13 +229,8 @@ export default function HomeDashboard({ navigation }) {
           <TouchableOpacity
             style={[styles.quickButton, { backgroundColor: colors.card }]}
           >
-            <Text
-              style={[
-                styles.quickButtonIcon,
-                { fontSize: 36 * scale, color: colors.text },
-              ]}
-            >
-              📞
+            <Text style={[styles.quickButtonIcon, { fontSize: 28 * scale }]}>
+              📍
             </Text>
             <Text style={[styles.quickButtonText, { color: colors.text }]}>
               Local Hotlines
@@ -248,14 +239,9 @@ export default function HomeDashboard({ navigation }) {
 
           <TouchableOpacity
             style={[styles.quickButton, { backgroundColor: colors.card }]}
-            onPress={() => navigation.navigate('Map')}
+            onPress={() => navigation?.navigate?.('Map')}
           >
-            <Text
-              style={[
-                styles.quickButtonIcon,
-                { fontSize: 36 * scale, color: colors.text },
-              ]}
-            >
+            <Text style={[styles.quickButtonIcon, { fontSize: 28 * scale }]}>
               🗺️
             </Text>
             <Text style={[styles.quickButtonText, { color: colors.text }]}>
@@ -265,51 +251,56 @@ export default function HomeDashboard({ navigation }) {
         </View>
       </View>
 
-      {/* Active Alerts List */}
-      <View style={[styles.alertsList, { backgroundColor: colors.background }]}>
+      <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Active Alerts
         </Text>
-        {activeAlerts.map(alert => (
+
+        {activeAlerts.slice(0, 3).map((alert, index) => (
           <TouchableOpacity
-            key={alert.id}
+            key={alert?.id || `fallback-${index}`}
             style={[
               styles.alertCard,
               {
                 backgroundColor: colors.card,
-                borderLeftColor: getSeverityColor(alert.severity),
+                borderLeftColor: getSeverityColor(alert?.severity),
               },
             ]}
-            onPress={() => navigation.navigate('Alerts')}
+            onPress={() => navigation?.navigate?.('Alerts')}
           >
             <View style={styles.alertHeader}>
               <Text style={[styles.alertType, { color: colors.text }]}>
-                {alert.type}
+                {alert?.type || 'Unknown'}
               </Text>
+
               <View
                 style={[
                   styles.severityBadge,
-                  { backgroundColor: getSeverityColor(alert.severity) },
+                  { backgroundColor: getSeverityColor(alert?.severity) },
                 ]}
               >
-                <Text style={styles.severityText}>{alert.severity}</Text>
+                <Text style={styles.severityText}>
+                  {alert?.severity || 'Unknown'}
+                </Text>
               </View>
             </View>
+
             <Text
               style={[
                 styles.alertLocation,
-                { fontSize: 14 * scale, color: colors.subtitle },
+                { color: colors.subtitle || '#666' },
               ]}
             >
-              📍 {alert.location}
+              📍 {alert?.location || 'Unknown location'}
             </Text>
+
             <Text
               style={[
                 styles.alertLocation,
-                { fontSize: 14 * scale, color: colors.subtitle },
+                { color: colors.subtitle || '#666' },
               ]}
             >
-              ⏰ {alert.time}
+              ⏰ {alert?.time || 'Unknown time'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -319,78 +310,134 @@ export default function HomeDashboard({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 24,
+  },
   banner: {
     padding: 20,
     alignItems: 'center',
-    borderRadius: 12,
-    margin: 12,
-    elevation: 3,
+    borderRadius: 14,
+    marginHorizontal: 12,
+    marginTop: 12,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
-  },
-  bannerIcon: { marginBottom: 12 },
-  bannerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  bannerText: { fontSize: 16, marginBottom: 2 },
-  bannerSubtext: { fontSize: 14 },
-  criCard: {
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 10,
-    marginVertical: 10,
     elevation: 2,
   },
-  criTitle: { fontWeight: '600' },
-  criScore: { fontSize: 22, fontWeight: 'bold', marginVertical: 2 },
-  criLabel: { fontSize: 14 },
-  quickActions: {
-    padding: 16,
-    marginTop: 12,
+  bannerIcon: {
+    marginBottom: 10,
   },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  criCard: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    marginVertical: 10,
+    minWidth: 150,
+  },
+  criTitle: {
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  criScore: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginVertical: 2,
+  },
+  criLabel: {
+    fontSize: 12,
+  },
+  bannerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 6,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  bannerText: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  bannerSubtext: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  section: {
+    marginTop: 16,
+    paddingHorizontal: 12,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   quickButton: {
     flex: 1,
-    padding: 16,
-    borderRadius: 12,
     marginHorizontal: 4,
+    borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-  },
-  quickButtonIcon: { marginBottom: 6 },
-  quickButtonText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  alertsList: { padding: 16, marginTop: 12 },
-  alertCard: {
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    elevation: 1,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  quickButtonIcon: {
+    marginBottom: 8,
+  },
+  quickButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  alertCard: {
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderLeftWidth: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
   alertHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  alertType: { fontSize: 16, fontWeight: 'bold' },
-  severityBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 },
-  severityText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
-  alertLocation: { marginBottom: 4 },
+  alertType: {
+    fontSize: 16,
+    fontWeight: '700',
+    flex: 1,
+    marginRight: 8,
+  },
+  severityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  severityText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  alertLocation: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
 });

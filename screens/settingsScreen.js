@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppContext } from '../context/AppContext';
 
 export default function SettingsScreen({ navigation }) {
+  console.log('SETTINGS RENDERING');
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);

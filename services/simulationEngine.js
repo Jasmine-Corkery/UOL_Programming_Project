@@ -1,3 +1,5 @@
+import { calculateImpactRadius } from './hazardModels';
+
 export function runHazardSimulation({ hazardType, severity, userLocation }) {
   const impactRadius = calculateImpactRadius(hazardType, severity);
 
@@ -18,9 +20,17 @@ export function runHazardSimulation({ hazardType, severity, userLocation }) {
 function generateSafeZones(userLocation, radius) {
   return [
     {
-      id: "safe-1",
+      id: 'safe-1',
       lat: userLocation.lat + 0.02,
       lng: userLocation.lng + 0.02,
     },
   ];
+}
+
+function generateEvacuationRoute(userLocation, safeZone) {
+  return {
+    start: userLocation,
+    end: safeZone,
+    distance: 5,
+  };
 }

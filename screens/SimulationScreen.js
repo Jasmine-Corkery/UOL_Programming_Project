@@ -4,6 +4,7 @@ import MapView, { Circle, Marker } from 'react-native-maps';
 import { runHazardSimulation } from '../services/simulationEngine';
 
 export default function SimulationScreen() {
+  console.log('SIMULATION RENDERING');
   const [simulationData, setSimulationData] = useState(null);
 
   const runSimulation = () => {

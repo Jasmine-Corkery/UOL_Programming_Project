@@ -13,17 +13,17 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import DropDetectionService from '../services/dropDetection';
+// import DropDetectionService from '../services/dropDetection';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
-import { fetchAllDisasters } from '../services/disasterService';
-import { fetchFemaSafeLocations } from '../services/femaService';
-import { calculateRiskScore } from '../services/riskEngine';
-import {
-  broadcastSafeStatus,
-  startMeshListener,
-} from '../services/meshService';
-import { optimizeAlert } from '../services/alertOptimizationEngine';
+// import { fetchAllDisasters } from '../services/disasterService';
+// import { fetchFemaSafeLocations } from '../services/femaService';
+// import { calculateRiskScore } from '../services/riskEngine';
+// import {
+//   broadcastSafeStatus,
+//   startMeshListener,
+// } from '../services/meshService';
+// import { optimizeAlert } from '../services/alertOptimizationEngine';
 
 const fetchRealEarthquakes = async () => {
   try {
@@ -59,6 +59,7 @@ Notifications.setNotificationHandler({
 });
 
 export default function EmergencyAlertScreen({ navigation }) {
+  console.log('ALERTS RENDERING');
   const { largeIcons } = useContext(AppContext);
   const [location, setLocation] = useState(null);
   const [locationName, setLocationName] = useState('Unknown Location');
@@ -74,6 +75,7 @@ export default function EmergencyAlertScreen({ navigation }) {
   const [emergencyZones, setEmergencyZones] = useState([]);
   const [riskData, setRiskData] = useState(null);
   const [meshMessages, setMeshMessages] = useState([]);
+  const [alertsEnabled, setAlertsEnabled] = useState(true);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -105,15 +107,15 @@ export default function EmergencyAlertScreen({ navigation }) {
     return () => {};
   }, []);
 
-  useEffect(() => {
-    DropDetectionService.start(() => {
-      setDropDetected(true);
-    });
+  // useEffect(() => {
+  //   DropDetectionService.start(() => {
+  //     setDropDetected(true);
+  //   });
 
-    return () => {
-      DropDetectionService.stop();
-    };
-  }, []);
+  //   return () => {
+  //     DropDetectionService.stop();
+  //   };
+  // }, []);
   useEffect(() => {
     const loadSettings = async () => {
       try {

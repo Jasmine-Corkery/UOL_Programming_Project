@@ -22,11 +22,12 @@ Notifications.setNotificationHandler({
     shouldSetBadge: true,
   }),
 });
-export function getSafeZoneScore() {
+export function getSafeZoneScore(nearbySafeZones = []) {
   return nearbySafeZones.length > 3 ? 90 : 60;
 }
 
 export default function InteractiveMap({ navigation }) {
+  console.log('MAP RENDERING');
   const [userLocation, setUserLocation] = useState({
     lat: 28.5383,
     lng: -81.3792,
