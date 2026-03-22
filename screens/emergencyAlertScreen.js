@@ -13,17 +13,17 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-// import DropDetectionService from '../services/dropDetection';
+import DropDetectionService from '../services/dropDetection';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
-// import { fetchAllDisasters } from '../services/disasterService';
-// import { fetchFemaSafeLocations } from '../services/femaService';
-// import { calculateRiskScore } from '../services/riskEngine';
-// import {
-//   broadcastSafeStatus,
-//   startMeshListener,
-// } from '../services/meshService';
-// import { optimizeAlert } from '../services/alertOptimizationEngine';
+import { fetchAllDisasters } from '../services/disasterService';
+import { fetchFemaSafeLocations } from '../services/femaService';
+import { calculateRiskScore } from '../services/riskEngine';
+import {
+  broadcastSafeStatus,
+  startMeshListener,
+} from '../services/meshService';
+import { optimizeAlert } from '../services/alertOptimizationEngine';
 
 const fetchRealEarthquakes = async () => {
   try {

@@ -10,6 +10,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
 import { calculateCommunityResilience } from '../services/communityResilienceEngine';
+import * as Location from 'expo-location';
 
 const fallbackAlerts = [
   {
@@ -38,6 +39,97 @@ const fallbackAlerts = [
   },
 ];
 
+function formatRelativeTime(dateString) {
+  if (!dateString) return 'Unknown time';
+
+  const now = new Date();
+  const then = new Date(dateString);
+  const diffMs = now - then;
+
+  if (Number.isNaN(then.getTime())) return 'Unknown time';
+
+  const minutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (minutes < 60) return `${Math.max(minutes, 1)} min ago`;
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+function inferAlertType(title, category) {
+  const text = `${title || ''} ${category || ''}`.toLowerCase();
+
+  if (
+    text.includes('hurricane') ||
+    text.includes('cyclone') ||
+    text.includes('typhoon')
+  ) {
+    return 'Hurricane';
+  }
+  if (text.includes('flood')) return 'Flood';
+  if (text.includes('wildfire') || text.includes('fire')) return 'Wildfire';
+  if (text.includes('storm')) return 'Storm';
+  if (text.includes('earthquake')) return 'Earthquake';
+  if (text.includes('volcano')) return 'Volcano';
+
+  return category || 'Disaster';
+}
+
+function inferSeverity(type) {
+  switch (type) {
+    case 'Hurricane':
+    case 'Wildfire':
+    case 'Earthquake':
+      return 'High';
+    case 'Flood':
+    case 'Storm':
+      return 'Medium';
+    default:
+      return 'Low';
+  }
+}
+async function getReadableLocation(title, coords) {
+  if (title) {
+    const parts = title.split('-');
+    if (parts.length > 1 && parts[1].trim()) {
+      return parts[1].trim();
+    }
+  }
+
+  if (
+    !coords ||
+    typeof coords[0] !== 'number' ||
+    typeof coords[1] !== 'number'
+  ) {
+    return 'Affected area';
+  }
+
+  try {
+    const results = await Location.reverseGeocodeAsync({
+      latitude: coords[1],
+      longitude: coords[0],
+    });
+
+    const place = results?.[0];
+    if (!place) {
+      return `Near ${coords[1].toFixed(1)}, ${coords[0].toFixed(1)}`;
+    }
+
+    return (
+      place.city ||
+      place.district ||
+      place.subregion ||
+      place.region ||
+      place.country ||
+      `Near ${coords[1].toFixed(1)}, ${coords[0].toFixed(1)}`
+    );
+  } catch (error) {
+    console.warn('Reverse geocoding failed:', error);
+    return `Near ${coords[1].toFixed(1)}, ${coords[0].toFixed(1)}`;
+  }
+}
+
 export default function HomeDashboard({ navigation }) {
   const { largeIcons } = useContext(AppContext);
   const [darkMode, setDarkMode] = useState(false);
@@ -65,32 +157,28 @@ export default function HomeDashboard({ navigation }) {
           setTopAlert(fallbackAlerts[0]);
           return;
         }
+        const mappedAlerts = await Promise.all(
+          data.events.slice(0, 5).map(async (event, index) => {
+            const geo = event.geometry?.[0];
+            const coords = Array.isArray(geo?.coordinates)
+              ? geo.coordinates
+              : null;
 
-        const mappedAlerts = data.events.slice(0, 5).map((event, index) => {
-          const geo = event.geometry?.[0];
-          const coords = Array.isArray(geo?.coordinates)
-            ? geo.coordinates
-            : null;
+            const category = event.categories?.[0]?.title || 'Disaster';
+            const type = inferAlertType(event.title, category);
+            const severity = inferSeverity(type);
+            const location = await getReadableLocation(event.title, coords);
 
-          const safeLocation =
-            coords &&
-            typeof coords[0] === 'number' &&
-            typeof coords[1] === 'number'
-              ? `${coords[1].toFixed(2)}, ${coords[0].toFixed(2)}`
-              : 'Unknown location';
-
-          return {
-            id: event.id || `event-${index}`,
-            type: event.categories?.[0]?.title || 'Disaster',
-            severity: 'High',
-            location: safeLocation,
-            time: geo?.date
-              ? new Date(geo.date).toLocaleString()
-              : 'Unknown time',
-            title: event.title || 'Untitled Event',
-          };
-        });
-
+            return {
+              id: event.id || `event-${index}`,
+              type,
+              severity,
+              location,
+              time: formatRelativeTime(geo?.date),
+              title: event.title || `${type} Alert`,
+            };
+          }),
+        );
         setActiveAlerts(mappedAlerts);
         setTopAlert(mappedAlerts[0] || fallbackAlerts[0]);
       } catch (error) {
@@ -291,7 +379,7 @@ export default function HomeDashboard({ navigation }) {
                 { color: colors.subtitle || '#666' },
               ]}
             >
-              📍 {alert?.location || 'Unknown location'}
+              📍 {alert?.location || 'Affected area'}
             </Text>
 
             <Text
