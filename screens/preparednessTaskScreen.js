@@ -6,13 +6,18 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PreparednessTaskScreen() {
   console.log('PREPAREDNESS RENDERING');
+
+  const insets = useSafeAreaInsets();
   const { largeIcons } = useContext(AppContext);
+
   const [darkMode, setDarkMode] = useState(false);
   const [items, setItems] = useState([
     'water bottles',
@@ -41,8 +46,10 @@ export default function PreparednessTaskScreen() {
   const scale = largeIcons ? 1.3 : 1;
 
   const completedCount = Object.values(checkedItems).filter(Boolean).length;
-  const progress = Math.round((completedCount / items.length) * 100);
-  const allCompleted = completedCount === items.length;
+  const progress =
+    items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
+  const allCompleted = items.length > 0 && completedCount === items.length;
+
   useEffect(() => {
     const saveScore = async () => {
       try {
@@ -69,7 +76,11 @@ export default function PreparednessTaskScreen() {
       paddingHorizontal: 16 * scale,
       paddingVertical: 12 * scale,
     },
-    addButtonText: { fontSize: 20 * scale, fontWeight: 'bold', color: '#fff' },
+    addButtonText: {
+      fontSize: 20 * scale,
+      fontWeight: 'bold',
+      color: '#fff',
+    },
     title: {
       color: colors.text,
       fontSize: 22 * scale,
@@ -91,13 +102,27 @@ export default function PreparednessTaskScreen() {
       color: colors.accent,
       fontWeight: 'bold',
     },
-    item: { color: colors.text, fontSize: 16 * scale },
-    badgeText: { color: colors.text, fontSize: 16 * scale, fontWeight: 'bold' },
+    item: {
+      color: colors.text,
+      fontSize: 16 * scale,
+    },
+    badgeText: {
+      color: colors.text,
+      fontSize: 16 * scale,
+      fontWeight: 'bold',
+    },
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Input Row */}
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={{
+        paddingTop: insets.top + 16,
+        paddingBottom: insets.bottom + 24,
+        paddingHorizontal: 16,
+      }}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.addRow}>
         <TextInput
           style={[styles.input, dynamicStyles.input]}
@@ -119,11 +144,9 @@ export default function PreparednessTaskScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Title & Progress */}
       <Text style={dynamicStyles.title}>Safety Kit Checklist</Text>
       <Text style={dynamicStyles.progress}>Progress: {progress}%</Text>
 
-      {/* Checklist Items */}
       {items.map((item, index) => (
         <TouchableOpacity
           key={index}
@@ -141,27 +164,35 @@ export default function PreparednessTaskScreen() {
         </TouchableOpacity>
       ))}
 
-      {/* Completion Badge */}
       {allCompleted && (
         <View style={[styles.badgeBox, { backgroundColor: colors.accent }]}>
           <Text style={dynamicStyles.badgeText}>Safety kit complete! 🏅</Text>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  addRow: { flexDirection: 'row', marginBottom: 16, alignItems: 'center' },
-  input: { flex: 1, borderRadius: 8, paddingHorizontal: 12, marginRight: 8 },
+  container: {
+    flex: 1,
+  },
+  addRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  input: {
+    flex: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+  },
   addButton: {
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontWeight: 'bold', marginBottom: 8 },
-  progress: { marginBottom: 12 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -176,13 +207,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkmark: { fontWeight: 'bold' },
-  item: { flex: 1 },
   badgeBox: {
     marginTop: 20,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  badgeText: { fontWeight: 'bold' },
 });

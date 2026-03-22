@@ -40,6 +40,7 @@ export default function InteractiveMap({ navigation }) {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [newSafeName, setNewSafeName] = useState('');
   const [darkMode, setDarkMode] = useState(false);
+  const [selectedSafeZoneCoords, setSelectedSafeZoneCoords] = useState(null);
 
   const colors = darkMode ? darkColors : lightColors;
 
@@ -49,18 +50,6 @@ export default function InteractiveMap({ navigation }) {
     fetchDisasters();
     loadCustomSafeZones();
     setupNotifications();
-  }, []);
-
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const dark = await AsyncStorage.getItem('darkMode');
-        if (dark !== null) setDarkMode(JSON.parse(dark));
-      } catch (e) {
-        console.error('Failed to load dark mode', e);
-      }
-    };
-    loadSettings();
   }, []);
 
   const loadSettings = async () => {
@@ -143,6 +132,17 @@ export default function InteractiveMap({ navigation }) {
       console.error('Error loading custom safe zones:', err);
     }
   };
+  const handleMapLongPress = event => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+
+    setSelectedSafeZoneCoords({
+      lat: latitude,
+      lng: longitude,
+    });
+
+    setNewSafeName('');
+    setAddModalVisible(true);
+  };
 
   const addCustomSafeZone = async () => {
     if (!newSafeName.trim()) {
@@ -153,12 +153,15 @@ export default function InteractiveMap({ navigation }) {
       return;
     }
 
+    const lat = selectedSafeZoneCoords?.lat ?? userLocation.lat;
+    const lng = selectedSafeZoneCoords?.lng ?? userLocation.lng;
+
     const zone = {
       id: `custom-${Date.now()}`,
       type: 'User Safe Zone',
       icon: '🛖',
-      lat: userLocation.lat,
-      lng: userLocation.lng,
+      lat,
+      lng,
       radius: 1,
       message: `User-defined safe location: ${newSafeName}`,
       location: newSafeName,
@@ -168,8 +171,11 @@ export default function InteractiveMap({ navigation }) {
     const updated = [...customSafeZones, zone];
     setCustomSafeZones(updated);
     await AsyncStorage.setItem('customSafeZones', JSON.stringify(updated));
+
     setAddModalVisible(false);
     setNewSafeName('');
+    setSelectedSafeZoneCoords(null);
+
     Alert.alert(
       'Safe Zone Added',
       `${zone.location} added to your safe zones.`,
@@ -187,6 +193,15 @@ export default function InteractiveMap({ navigation }) {
         Math.sin(dLon / 2) ** 2;
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
+  const nearbySafeZones = customSafeZones.filter(zone => {
+    const distance = calculateDistance(
+      userLocation.lat,
+      userLocation.lng,
+      zone.lat,
+      zone.lng,
+    );
+    return distance <= 10;
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -195,6 +210,7 @@ export default function InteractiveMap({ navigation }) {
         style={StyleSheet.absoluteFillObject}
         showsUserLocation
         followsUserLocation
+        onLongPress={handleMapLongPress}
         initialRegion={{
           latitude: userLocation.lat,
           longitude: userLocation.lng,
@@ -229,6 +245,24 @@ export default function InteractiveMap({ navigation }) {
         ))}
       </MapView>
 
+      <View style={[styles.topPanel, { backgroundColor: colors.card }]}>
+        <Text style={[styles.topPanelTitle, { color: colors.text }]}>
+          Nearby Shelters
+        </Text>
+
+        <Text style={[styles.topPanelSubtitle, { color: colors.subtitle }]}>
+          {locationLoading
+            ? 'Finding your location...'
+            : `Current location: ${locationName}`}
+        </Text>
+
+        <Text style={[styles.topPanelInfo, { color: colors.text }]}>
+          {nearbySafeZones.length > 0
+            ? `${nearbySafeZones.length} nearby safe zone${nearbySafeZones.length === 1 ? '' : 's'} found`
+            : 'No nearby safe zones saved yet'}
+        </Text>
+      </View>
+
       <TouchableOpacity
         style={[styles.floatingButton, { backgroundColor: colors.accent }]}
         onPress={() => setAddModalVisible(true)}
@@ -262,8 +296,20 @@ export default function InteractiveMap({ navigation }) {
             >
               Add Safe Location
             </Text>
+            {selectedSafeZoneCoords && (
+              <Text
+                style={{
+                  marginBottom: 10,
+                  color: colors.subtitle,
+                }}
+              >
+                Selected location: {selectedSafeZoneCoords.lat.toFixed(4)},{' '}
+                {selectedSafeZoneCoords.lng.toFixed(4)}
+              </Text>
+            )}
             <TextInput
               placeholder="Enter location name"
+              placeholderTextColor={colors.subtitle}
               value={newSafeName}
               onChangeText={setNewSafeName}
               style={[
@@ -335,5 +381,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 8,
+  },
+  topPanel: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    right: 16,
+    borderRadius: 14,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  topPanelTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  topPanelSubtitle: {
+    fontSize: 13,
+    marginBottom: 6,
+  },
+  topPanelInfo: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
