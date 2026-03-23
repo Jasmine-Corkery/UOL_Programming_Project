@@ -161,17 +161,13 @@ export default function ResourceHubScreen() {
 
         <TouchableOpacity
           style={[styles.linkCard, { backgroundColor: colors.card }]}
-          onPress={() => openLink('https://www.cdc.gov/prepyourhealth')}
+          onPress={() => openLink('https://www.gov.uk')}
         >
-          <Text style={dynamicStyles.linkTitle}>
-            CDC Emergency Preparedness
-          </Text>
+          <Text style={dynamicStyles.linkTitle}>UK Government</Text>
           <Text style={dynamicStyles.linkDescription}>
-            Health and safety guidelines
+            Official emergency guidance and alerts
           </Text>
-          <Text style={dynamicStyles.linkUrl}>
-            www.cdc.gov/prepyourhealth →
-          </Text>
+          <Text style={dynamicStyles.linkUrl}>gov.uk →</Text>
         </TouchableOpacity>
 
         <TouchableOpacity

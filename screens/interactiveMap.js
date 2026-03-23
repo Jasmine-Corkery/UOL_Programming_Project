@@ -219,8 +219,8 @@ export default function InteractiveMap({ navigation }) {
       <MapView
         provider={PROVIDER_DEFAULT}
         style={StyleSheet.absoluteFillObject}
-        showsUserLocation={false}
-        followsUserLocation={false}
+        showsUserLocation={true}
+        followsUserLocation={true}
         onLongPress={handleMapLongPress}
         initialRegion={{
           latitude: userLocation.lat,
