@@ -25,14 +25,6 @@ import {
   startMeshListener,
 } from '../services/meshService';
 
-const DEMO_LOCATION = {
-  coords: {
-    latitude: 51.5074,
-    longitude: -0.1278,
-    speed: 0,
-  },
-};
-
 // fetch live earthquake data from USGS API
 const fetchRealEarthquakes = async () => {
   try {
@@ -86,18 +78,6 @@ export default function EmergencyAlertScreen({ navigation }) {
   const [meshMessages, setMeshMessages] = useState([]);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [showDropModal, setShowDropModal] = useState(false);
-
-  const clearCustomSafeZones = async () => {
-    try {
-      await AsyncStorage.removeItem('customSafeZones');
-      setEmergencyZones(prev =>
-        prev.filter(zone => zone.type !== 'User Safe Zone'),
-      );
-      Alert.alert('Cleared', 'All custom safe zones have been removed.');
-    } catch (error) {
-      console.error('Failed to clear custom safe zones:', error);
-    }
-  };
 
   // load settings
   useEffect(() => {
@@ -201,27 +181,6 @@ export default function EmergencyAlertScreen({ navigation }) {
     await broadcastSafeStatus('user-123');
     Alert.alert('Status Sent', 'Your safe status has been broadcast locally.');
   };
-  // Custom safe zones - adds user defined safe location
-  const addCustomSafeLocation = async (name, lat, lng, radius = 1) => {
-    const customZone = {
-      id: `custom-${Date.now()}`,
-      type: 'User Safe Zone',
-      icon: '🛖',
-      lat,
-      lng,
-      radius,
-      message: `User-defined safe location: ${name}`,
-      location: name,
-      severity: 'safe',
-    };
-
-    const existing = await AsyncStorage.getItem('customSafeZones');
-    const zones = existing ? JSON.parse(existing) : [];
-    zones.push(customZone);
-    await AsyncStorage.setItem('customSafeZones', JSON.stringify(zones));
-
-    setEmergencyZones(prev => [...prev, customZone]);
-  };
 
   useEffect(() => {
     requestPermissions();
@@ -235,11 +194,11 @@ export default function EmergencyAlertScreen({ navigation }) {
       const loadDisasters = async () => {
         const zones = await fetchAllDisasters();
         const femaSafeZones = await fetchFemaSafeLocations();
-        setEmergencyZones(zones);
+        const earthquakes = await fetchRealEarthquakes();
+        setEmergencyZones([...zones, ...femaSafeZones, ...earthquakes]);
       };
 
       loadDisasters();
-
       disasterInterval = setInterval(loadDisasters, 300000);
 
       locationSubscription = Location.watchPositionAsync(
