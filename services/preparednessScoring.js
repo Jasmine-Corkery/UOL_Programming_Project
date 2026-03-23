@@ -1,3 +1,4 @@
+// calculates how prepared a user is for emergencies
 export function calculatePreparednessScore({
   hasEmergencyKit,
   evacuationKnowledge,
@@ -5,6 +6,7 @@ export function calculatePreparednessScore({
 }) {
   let score = 0;
 
+  // if the user has a preparedness kit add 30 points
   if (hasEmergencyKit) score += 30;
   if (evacuationKnowledge) score += 30;
   if (alertResponseSpeed < 60) score += 40;

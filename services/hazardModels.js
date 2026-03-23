@@ -1,3 +1,4 @@
+// impact radius calculation - calculates how large the affected area is based on disaster type and severity
 export function calculateImpactRadius(type, severity) {
   const baseRadius = {
     flood: 500,

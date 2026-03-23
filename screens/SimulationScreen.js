@@ -1,8 +1,9 @@
+// imports
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import MapView, { Circle, Marker } from 'react-native-maps';
 import { runHazardSimulation } from '../services/simulationEngine';
-
+// Simulation screen component
 export default function SimulationScreen() {
   console.log('SIMULATION RENDERING');
   const [simulationData, setSimulationData] = useState(null);
@@ -19,7 +20,7 @@ export default function SimulationScreen() {
 
     setSimulationData(result);
   };
-
+  // UI - screen for testing the simulation engine
   return (
     <View style={{ flex: 1 }}>
       <MapView style={{ flex: 1 }}>

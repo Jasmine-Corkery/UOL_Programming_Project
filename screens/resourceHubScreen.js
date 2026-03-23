@@ -1,3 +1,4 @@
+// imports
 import React, { useEffect, useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import {
@@ -11,13 +12,13 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
 
+// Resource Hub Screen component
 export default function ResourceHubScreen() {
-  console.log('RESOURCES RENDERING');
   const { largeIcons } = useContext(AppContext);
   const [darkMode, setDarkMode] = useState(false);
   const colors = darkMode ? darkColors : lightColors;
   const scale = largeIcons ? 1.3 : 1;
-
+  // Load dark mode setting on component mount
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -35,7 +36,7 @@ export default function ResourceHubScreen() {
       console.error('Failed to open URL', err);
     });
   };
-
+  // dynamic styles
   const dynamicStyles = {
     headerPadding: {
       padding: 24 * scale,
@@ -87,12 +88,11 @@ export default function ResourceHubScreen() {
     },
     linkUrl: { fontSize: 12 * scale, fontWeight: '500', color: colors.accent },
   };
-
+  // UI
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      {/* Header */}
       <View style={dynamicStyles.headerPadding}>
         <Text style={dynamicStyles.title}>Resource Hub</Text>
         <Text style={dynamicStyles.subtitle}>
@@ -100,7 +100,6 @@ export default function ResourceHubScreen() {
         </Text>
       </View>
 
-      {/* Emergency Contacts */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View style={dynamicStyles.iconContainer}>
@@ -114,19 +113,17 @@ export default function ResourceHubScreen() {
             <Text style={dynamicStyles.contactLabel}>
               Local Emergency Services
             </Text>
-            <TouchableOpacity onPress={() => Linking.openURL('tel:119')}>
-              <Text style={dynamicStyles.contactNumber}>119</Text>
+            <TouchableOpacity onPress={() => Linking.openURL('tel:999')}>
+              <Text style={dynamicStyles.contactNumber}>999</Text>
             </TouchableOpacity>
           </View>
 
           <View style={[styles.divider, { backgroundColor: colors.helper }]} />
 
           <View style={styles.contactItem}>
-            <Text style={dynamicStyles.contactLabel}>Poison Control</Text>
-            <TouchableOpacity
-              onPress={() => Linking.openURL('tel:1-800-222-1222')}
-            >
-              <Text style={dynamicStyles.contactNumber}>1-800-222-1222</Text>
+            <Text style={dynamicStyles.contactLabel}>NHS</Text>
+            <TouchableOpacity onPress={() => Linking.openURL('tel:111')}>
+              <Text style={dynamicStyles.contactNumber}>111</Text>
             </TouchableOpacity>
           </View>
 
@@ -135,15 +132,14 @@ export default function ResourceHubScreen() {
           <View style={styles.contactItem}>
             <Text style={dynamicStyles.contactLabel}>Red Cross</Text>
             <TouchableOpacity
-              onPress={() => Linking.openURL('tel:1-800-733-2767')}
+              onPress={() => Linking.openURL('tel:0344 871 1111')}
             >
-              <Text style={dynamicStyles.contactNumber}>1-800-733-2767</Text>
+              <Text style={dynamicStyles.contactNumber}>0344 871 1111</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      {/* Useful Links */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View style={dynamicStyles.iconContainer}>
@@ -198,7 +194,7 @@ export default function ResourceHubScreen() {
     </ScrollView>
   );
 }
-
+// styles
 const styles = StyleSheet.create({
   container: { flex: 1 },
   section: { marginTop: 24, paddingHorizontal: 16 },

@@ -1,3 +1,4 @@
+// imports
 import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import {
@@ -23,8 +24,16 @@ import {
   broadcastSafeStatus,
   startMeshListener,
 } from '../services/meshService';
-import { optimizeAlert } from '../services/alertOptimizationEngine';
 
+const DEMO_LOCATION = {
+  coords: {
+    latitude: 51.5074,
+    longitude: -0.1278,
+    speed: 0,
+  },
+};
+
+// fetch live earthquake data from USGS API
 const fetchRealEarthquakes = async () => {
   try {
     const response = await fetch(
@@ -49,7 +58,7 @@ const fetchRealEarthquakes = async () => {
     return [];
   }
 };
-
+// notification config
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -57,9 +66,9 @@ Notifications.setNotificationHandler({
     shouldSetBadge: true,
   }),
 });
-
+// main screen component
 export default function EmergencyAlertScreen({ navigation }) {
-  console.log('ALERTS RENDERING');
+  // states
   const { largeIcons } = useContext(AppContext);
   const [location, setLocation] = useState(null);
   const [locationName, setLocationName] = useState('Unknown Location');
@@ -76,7 +85,21 @@ export default function EmergencyAlertScreen({ navigation }) {
   const [riskData, setRiskData] = useState(null);
   const [meshMessages, setMeshMessages] = useState([]);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [showDropModal, setShowDropModal] = useState(false);
 
+  const clearCustomSafeZones = async () => {
+    try {
+      await AsyncStorage.removeItem('customSafeZones');
+      setEmergencyZones(prev =>
+        prev.filter(zone => zone.type !== 'User Safe Zone'),
+      );
+      Alert.alert('Cleared', 'All custom safe zones have been removed.');
+    } catch (error) {
+      console.error('Failed to clear custom safe zones:', error);
+    }
+  };
+
+  // load settings
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -88,6 +111,8 @@ export default function EmergencyAlertScreen({ navigation }) {
     };
     loadSettings();
   }, []);
+
+  // mesh network - listen for nearby device messages
   useEffect(() => {
     startMeshListener(incomingMessage => {
       setMeshMessages(prev => [...prev, incomingMessage]);
@@ -107,9 +132,11 @@ export default function EmergencyAlertScreen({ navigation }) {
     return () => {};
   }, []);
 
+  // drop detection - start fall detection
   useEffect(() => {
     DropDetectionService.start(() => {
       setDropDetected(true);
+      setShowDropModal(true);
     });
 
     return () => {
@@ -137,22 +164,26 @@ export default function EmergencyAlertScreen({ navigation }) {
 
     loadSettings();
   }, []);
+  // Auto emergency response - If no response after a fall call emergency contact
   useEffect(() => {
     let timer;
 
-    if (dropDetected) {
+    if (showDropModal) {
       timer = setTimeout(() => {
         Alert.alert(
           'No Response Detected',
           'Emergency contact would be notified automatically.',
         );
         callEmergencyNumber(emergencyNumberRef.current);
+        setShowDropModal(false);
         setDropDetected(false);
       }, 15000);
     }
 
     return () => clearTimeout(timer);
-  }, [dropDetected, emergencyNumber]);
+  }, [showDropModal]);
+
+  // call function - opens phone dialler with number prefilled
   const callEmergencyNumber = number => {
     const phoneNumber = `tel:${number}`;
     Linking.canOpenURL(phoneNumber)
@@ -165,10 +196,12 @@ export default function EmergencyAlertScreen({ navigation }) {
       })
       .catch(err => console.error('Error opening dialer:', err));
   };
+  // safe status - broadcasts "I'm safe" to nearby users
   const handleSafePress = async () => {
     await broadcastSafeStatus('user-123');
     Alert.alert('Status Sent', 'Your safe status has been broadcast locally.');
   };
+  // Custom safe zones - adds user defined safe location
   const addCustomSafeLocation = async (name, lat, lng, radius = 1) => {
     const customZone = {
       id: `custom-${Date.now()}`,
@@ -232,7 +265,7 @@ export default function EmergencyAlertScreen({ navigation }) {
       }
     };
   }, [locationEnabled, notificationsEnabled, watchingLocation]);
-
+  // Location name - Converts coordinates into a readable place name
   const updateLocationName = async currentLocation => {
     try {
       const { latitude, longitude } = currentLocation.coords;
@@ -241,35 +274,29 @@ export default function EmergencyAlertScreen({ navigation }) {
         longitude,
       });
 
-      console.log('Address for alert screen:', address);
-
       if (address) {
         const city = address.city || address.subregion || 'Unknown';
         const state = address.region || '';
         const newLocationName = `${city}${state ? ', ' + state : ''}`;
         setLocationName(newLocationName);
-        console.log('Location name set to:', newLocationName);
       }
     } catch (error) {
       console.error('Error getting location name:', error);
     }
   };
-
+  // Permissions - Requests location and notification permissions
   const requestPermissions = async () => {
     try {
       const { status: locationStatus } =
         await Location.requestForegroundPermissionsAsync();
-      console.log('Location permission status:', locationStatus);
       setLocationEnabled(locationStatus === 'granted');
 
       const { status: notificationStatus } =
         await Notifications.requestPermissionsAsync();
-      console.log('Notification permission status:', notificationStatus);
       setNotificationsEnabled(notificationStatus === 'granted');
 
       if (locationStatus === 'granted') {
         const currentLocation = await Location.getCurrentPositionAsync({});
-        console.log('Initial location received:', currentLocation.coords);
         setLocation(currentLocation);
         await updateLocationName(currentLocation);
       }
@@ -277,7 +304,7 @@ export default function EmergencyAlertScreen({ navigation }) {
       console.error('Error requesting permissions:', error);
     }
   };
-
+  // Distance calculation - distance between two coordinates (Haversine formula)
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -291,7 +318,7 @@ export default function EmergencyAlertScreen({ navigation }) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
-
+  // Proximity check - checks if the user is near danger zones
   const checkProximityToEmergencies = currentLocation => {
     const { latitude, longitude, speed } = currentLocation.coords;
     const newAlerts = [];
@@ -317,14 +344,19 @@ export default function EmergencyAlertScreen({ navigation }) {
       });
 
       setRiskData(risk);
-
+      // Triggers an alert if risk is high
       if (risk.score >= 60) {
         if (!activeAlerts.find(a => a.id === zone.id)) {
-          const optimizedSteps = optimizeAlert({
-            alert: zone,
-            userPreferences: {},
+          newAlerts.push({
+            ...zone,
+            steps: zone.message
+              ? zone.message
+                  .split('.')
+                  .map(sentence => sentence.trim())
+                  .filter(Boolean)
+              : [],
           });
-          newAlerts.push({ ...zone, optimizedSteps });
+
           sendNotification(zone, distance, locationName, risk);
         }
       }
@@ -333,12 +365,8 @@ export default function EmergencyAlertScreen({ navigation }) {
     if (newAlerts.length > 0) {
       setActiveAlerts([...activeAlerts, ...newAlerts]);
     }
-
-    if (newAlerts.length > 0) {
-      setActiveAlerts([...activeAlerts, ...newAlerts]);
-    }
   };
-
+  // Notifications - sends a push notification
   const sendNotification = async (
     zone,
     distance,
@@ -455,10 +483,9 @@ export default function EmergencyAlertScreen({ navigation }) {
         return '#28a745';
     }
   };
-
+  // UI
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
       <View
         style={[
           styles.header,
@@ -474,7 +501,6 @@ export default function EmergencyAlertScreen({ navigation }) {
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Status Card */}
         <View style={[styles.statusCard, { backgroundColor: colors.card }]}>
           <View style={styles.statusRow}>
             <View style={styles.statusItem}>
@@ -555,7 +581,6 @@ export default function EmergencyAlertScreen({ navigation }) {
           </View>
         )}
 
-        {/* Alert Monitoring Toggle */}
         <View style={[styles.monitoringCard, { backgroundColor: colors.card }]}>
           <View style={styles.monitoringHeader}>
             <View>
@@ -603,7 +628,6 @@ export default function EmergencyAlertScreen({ navigation }) {
           )}
         </View>
 
-        {/* Simulation Button */}
         <TouchableOpacity
           style={[styles.simulateButton, { backgroundColor: colors.accent }]}
           onPress={simulateEmergencyNearby}
@@ -612,15 +636,7 @@ export default function EmergencyAlertScreen({ navigation }) {
             🧪 Simulate Emergency Alert
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() =>
-            addCustomSafeLocation("Grandma's House", 40.7128, -74.006)
-          }
-        >
-          <Text>Add Safe Zone</Text>
-        </TouchableOpacity>
 
-        {/* Active Alerts */}
         {activeAlerts.length > 0 && !dropDetected && (
           <View style={styles.alertsSection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -664,9 +680,9 @@ export default function EmergencyAlertScreen({ navigation }) {
                     </Text>
                   </TouchableOpacity>
                 </View>
-                {alert.optimizedSteps?.map(step => (
-                  <Text key={step.id} style={{ marginBottom: 8 }}>
-                    {step.id + 1}. {step.text}
+                {alert.steps?.map((step, index) => (
+                  <Text key={index} style={{ marginBottom: 8 }}>
+                    {index + 1}. {step}
                   </Text>
                 ))}
                 <View
@@ -684,7 +700,6 @@ export default function EmergencyAlertScreen({ navigation }) {
           </View>
         )}
 
-        {/* Emergency Zones Map */}
         <View style={styles.zonesSection}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             📍 Monitored Emergency Zones
@@ -732,7 +747,6 @@ export default function EmergencyAlertScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Help Section */}
         <View
           style={[
             styles.helpCard,
@@ -757,7 +771,7 @@ export default function EmergencyAlertScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      {dropDetected && (
+      {showDropModal && (
         <View style={styles.dropOverlay}>
           <View style={[styles.dropModal, { backgroundColor: colors.card }]}>
             <Text
@@ -777,6 +791,7 @@ export default function EmergencyAlertScreen({ navigation }) {
               onPress={() => {
                 handleSafePress();
                 setDropDetected(false);
+                setShowDropModal(false);
               }}
             >
               <Text style={styles.dropButtonText}>
@@ -798,6 +813,7 @@ export default function EmergencyAlertScreen({ navigation }) {
                   ],
                 );
                 setDropDetected(false);
+                setShowDropModal(false);
               }}
             >
               <Text style={styles.dropButtonText}>I Need Help</Text>
@@ -808,7 +824,7 @@ export default function EmergencyAlertScreen({ navigation }) {
     </View>
   );
 }
-
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

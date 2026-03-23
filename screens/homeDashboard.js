@@ -1,3 +1,4 @@
+// imports
 import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import {
@@ -8,11 +9,12 @@ import {
   ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { lightColors, darkColors } from '../services/theme';
+import { lightColors, darkColors, colorBlindColors } from '../services/theme';
 import { calculateCommunityResilience } from '../services/communityResilienceEngine';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// fallback alert data - used if the API call fails or returns nothing
 const fallbackAlerts = [
   {
     id: 'demo-1',
@@ -39,7 +41,7 @@ const fallbackAlerts = [
     title: 'Forest Fire Contained',
   },
 ];
-
+// helper that converts a timestamp into a user friendly label
 function formatRelativeTime(dateString) {
   if (!dateString) return 'Unknown time';
 
@@ -57,7 +59,7 @@ function formatRelativeTime(dateString) {
   if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
   return `${days} day${days === 1 ? '' : 's'} ago`;
 }
-
+// helper that infers a simpler alert category using the category text and API title
 function inferAlertType(title, category) {
   const text = `${title || ''} ${category || ''}`.toLowerCase();
 
@@ -77,6 +79,7 @@ function inferAlertType(title, category) {
   return category || 'Disaster';
 }
 
+// helper that assigns a basic severity label based on the disaster type
 function inferSeverity(type) {
   switch (type) {
     case 'Hurricane':
@@ -90,6 +93,7 @@ function inferSeverity(type) {
       return 'Low';
   }
 }
+// helper that attempts to turn coordinates into a user readable place name
 async function getReadableLocation(title, coords) {
   if (title) {
     const parts = title.split('-');
@@ -113,6 +117,7 @@ async function getReadableLocation(title, coords) {
     });
 
     const place = results?.[0];
+    // show approximate coordinates if the geocoding does not give a usable result
     if (!place) {
       return `Near ${coords[1].toFixed(1)}, ${coords[0].toFixed(1)}`;
     }
@@ -130,21 +135,21 @@ async function getReadableLocation(title, coords) {
     return `Near ${coords[1].toFixed(1)}, ${coords[0].toFixed(1)}`;
   }
 }
-
+// main screen
 export default function HomeDashboard({ navigation }) {
   const { largeIcons, darkMode, colorBlindMode } = useContext(AppContext);
   const insets = useSafeAreaInsets();
   const [cri, setCri] = useState(0);
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [topAlert, setTopAlert] = useState(null);
-
+  // initial data load that runs once on component mount to fetch current alerts and calculate resilience
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
         const res = await fetch(
           'https://eonet.gsfc.nasa.gov/api/v3/events?status=open',
         );
-
+        // if the API fails use the local demon alerts
         if (!res.ok) {
           setActiveAlerts(fallbackAlerts);
           setTopAlert(fallbackAlerts[0]);
@@ -188,7 +193,7 @@ export default function HomeDashboard({ navigation }) {
         setTopAlert(fallbackAlerts[0]);
       }
     };
-
+    // Calculate the CRI (Community Resilience Index) and then fetch alerts
     const loadData = async () => {
       try {
         const criResult = calculateCommunityResilience({
@@ -215,20 +220,24 @@ export default function HomeDashboard({ navigation }) {
 
     loadData();
   }, []);
-
-  const colors = darkMode ? darkColors : lightColors;
+  // Theme and accessibility
+  const colors = colorBlindColors
+    ? colorBlindColors
+    : darkMode
+      ? darkColors
+      : lightColors;
   const scale = largeIcons ? 1.3 : 1;
-
+  // Returns a different severity colour and depending whether colour blind mode is enabled
   const getSeverityColor = severity => {
     if (colorBlindMode) {
-      // Accessible palette (no red/green reliance)
+      // Accessible palette - minimal red and green
       switch (severity) {
         case 'High':
-          return '#7A1C1C'; // dark maroon
+          return '#7A1C1C';
         case 'Medium':
-          return '#B26A00'; // dark amber
+          return '#B26A00';
         case 'Low':
-          return '#1F4E79'; // dark blue
+          return '#1F4E79';
         default:
           return '#5A5A5A';
       }
@@ -236,17 +245,17 @@ export default function HomeDashboard({ navigation }) {
       // Normal colors
       switch (severity) {
         case 'High':
-          return '#e53935'; // red
+          return '#e53935';
         case 'Medium':
-          return '#f4b400'; // yellow
+          return '#f4b400';
         case 'Low':
-          return '#34a853'; // green
+          return '#34a853';
         default:
           return '#9e9e9e';
       }
     }
   };
-
+  // UI
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -259,6 +268,7 @@ export default function HomeDashboard({ navigation }) {
       ]}
       showsVerticalScrollIndicator={false}
     >
+      {/* Top Alert and CRI Banner */}
       <View style={[styles.banner, { backgroundColor: colors.card }]}>
         <Text
           style={[
@@ -299,7 +309,6 @@ export default function HomeDashboard({ navigation }) {
           Evacuation recommended in affected areas
         </Text>
       </View>
-
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Quick Actions
@@ -355,7 +364,6 @@ export default function HomeDashboard({ navigation }) {
           </TouchableOpacity>
         </View>
       </View>
-
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Active Alerts
@@ -413,7 +421,7 @@ export default function HomeDashboard({ navigation }) {
     </ScrollView>
   );
 }
-
+// styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

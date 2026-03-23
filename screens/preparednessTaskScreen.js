@@ -1,3 +1,4 @@
+// imports
 import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import {
@@ -11,10 +12,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+// Prepareedness task screen component
 export default function PreparednessTaskScreen() {
-  console.log('PREPAREDNESS RENDERING');
-
   const insets = useSafeAreaInsets();
   const { largeIcons } = useContext(AppContext);
 
@@ -29,7 +28,7 @@ export default function PreparednessTaskScreen() {
   ]);
   const [checkedItems, setCheckedItems] = useState({});
   const [newItem, setNewItem] = useState('');
-
+  // Load dark mode settings on component mount
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -41,15 +40,14 @@ export default function PreparednessTaskScreen() {
     };
     loadSettings();
   }, []);
-
+  // Determine scaling and colours based on settings
   const colors = darkMode ? darkColors : lightColors;
   const scale = largeIcons ? 1.3 : 1;
-
   const completedCount = Object.values(checkedItems).filter(Boolean).length;
   const progress =
     items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
   const allCompleted = items.length > 0 && completedCount === items.length;
-
+  // Save preparedness score whenever progress changes
   useEffect(() => {
     const saveScore = async () => {
       try {
@@ -63,7 +61,7 @@ export default function PreparednessTaskScreen() {
     };
     saveScore();
   }, [progress]);
-
+  // styles based on accessibilty settings and theme
   const dynamicStyles = {
     input: {
       backgroundColor: colors.inputBackground,
@@ -112,7 +110,7 @@ export default function PreparednessTaskScreen() {
       fontWeight: 'bold',
     },
   };
-
+  // UI
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -172,7 +170,7 @@ export default function PreparednessTaskScreen() {
     </ScrollView>
   );
 }
-
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

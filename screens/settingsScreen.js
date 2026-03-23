@@ -1,3 +1,4 @@
+// Imports
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
@@ -12,8 +13,9 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppContext } from '../context/AppContext';
 
+// Settings Screen Component
 export default function SettingsScreen({ navigation }) {
-  console.log('SETTINGS RENDERING');
+  // States
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
@@ -64,7 +66,7 @@ export default function SettingsScreen({ navigation }) {
     : darkMode
       ? darkColors
       : lightColors;
-
+  // On component mount load settings from Async Storage
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -109,7 +111,7 @@ export default function SettingsScreen({ navigation }) {
       console.error(`Failed to save ${key}`, e);
     }
   };
-
+  // Helper to update state by key name
   const setStateByKey = (key, value) => {
     switch (key) {
       case 'alertsEnabled':
@@ -132,12 +134,11 @@ export default function SettingsScreen({ navigation }) {
         break;
     }
   };
-
+  // UI
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.accent }]}>
         <Text
           style={[
@@ -155,7 +156,6 @@ export default function SettingsScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Profile Section */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Account
@@ -168,7 +168,6 @@ export default function SettingsScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Notifications */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Notifications
@@ -188,7 +187,6 @@ export default function SettingsScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Location */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Location
@@ -210,7 +208,6 @@ export default function SettingsScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Appearance */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Appearance
@@ -229,13 +226,12 @@ export default function SettingsScreen({ navigation }) {
           UI preview only (no system override).
         </Text>
       </View>
-      {/* Accessibility */}
+
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Accessibility
         </Text>
 
-        {/* Color Blind Mode */}
         <View style={styles.row}>
           <Text style={[styles.rowText, { color: colors.text }]}>
             High Contrast Mode
@@ -251,7 +247,6 @@ export default function SettingsScreen({ navigation }) {
           Improves visibility for color vision deficiencies.
         </Text>
 
-        {/* Large Icons */}
         <View style={[styles.row, { marginTop: 15 }]}>
           <Text style={[styles.rowText, { color: colors.text }]}>
             Larger Icons
@@ -268,7 +263,6 @@ export default function SettingsScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Offline Mode */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Offline Mode
@@ -288,7 +282,6 @@ export default function SettingsScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Emergency Contact */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Emergency Contact
@@ -315,7 +308,6 @@ export default function SettingsScreen({ navigation }) {
         />
       </View>
 
-      {/* Map Info */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Map Provider
@@ -334,7 +326,6 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </View>
 
-      {/* About */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>
         <Text style={[styles.aboutText, { color: colors.text }]}>
@@ -347,7 +338,7 @@ export default function SettingsScreen({ navigation }) {
     </ScrollView>
   );
 }
-
+// Styles
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { padding: 20 },

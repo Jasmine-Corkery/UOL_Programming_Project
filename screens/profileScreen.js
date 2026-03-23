@@ -1,3 +1,4 @@
+// imports
 import React, { useContext, useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -5,6 +6,7 @@ import { lightColors, darkColors } from '../services/theme';
 import { AppContext } from '../context/AppContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// Constants
 const ALL_ACHIEVEMENTS = [
   {
     key: 'checklist_master',
@@ -33,6 +35,7 @@ const ALL_ACHIEVEMENTS = [
   },
 ];
 
+// Profile Screen component
 export default function ProfileScreen({ navigation }) {
   const { darkMode, largeIcons } = useContext(AppContext);
   const insets = useSafeAreaInsets();
@@ -50,7 +53,7 @@ export default function ProfileScreen({ navigation }) {
     lastLoginDate: '',
     checklistCompleted: false,
   });
-
+  // Load profile data on mount
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -94,7 +97,7 @@ export default function ProfileScreen({ navigation }) {
 
     loadProfile();
   }, []);
-
+  // Logout function
   const handleLogout = async () => {
     await AsyncStorage.removeItem('currentUser');
     navigation.replace('Login');
@@ -103,7 +106,7 @@ export default function ProfileScreen({ navigation }) {
   const handleGoHome = () => {
     navigation.navigate('Main', { screen: 'Home' });
   };
-
+  // Calculate earned achievements
   const getEarnedAchievements = () => {
     const earned = [];
 
@@ -135,7 +138,7 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const earnedAchievements = getEarnedAchievements();
-
+  // Demo function to add an achievement - for testing
   const addDemoAchievement = async () => {
     try {
       const currentUser = await AsyncStorage.getItem('currentUser');
@@ -154,16 +157,13 @@ export default function ProfileScreen({ navigation }) {
           : [],
       };
 
-      // ✅ Add demo badge
       const demoBadge = '🏅 Demo Achievement';
       if (!updatedStats.badges.includes(demoBadge)) {
         updatedStats.badges.push(demoBadge);
       }
 
-      // ✅ Give enough XP to reach level 2 (minimum 100)
       updatedStats.points = Math.max(updatedStats.points || 0, 100);
 
-      // ✅ Recalculate level
       updatedStats.level = Math.floor(updatedStats.points / 100) + 1;
 
       userData.stats = updatedStats;
@@ -176,7 +176,7 @@ export default function ProfileScreen({ navigation }) {
       console.error('Error adding demo achievement:', error);
     }
   };
-
+  // Styles
   const styles = {
     title: {
       fontWeight: 'bold',
@@ -255,7 +255,7 @@ export default function ProfileScreen({ navigation }) {
       textAlign: 'center',
     },
   };
-
+  // UI
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}

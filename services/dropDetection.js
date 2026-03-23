@@ -1,7 +1,9 @@
+// Import
+import { Accelerometer } from 'expo-sensors';
 
-import { Accelerometer } from "expo-sensors";
-
+// Drop Detection Service
 class DropDetectionService {
+  // class detects sudden drops using accelerometer data
   constructor() {
     this.subscription = null;
     this.isMonitoring = false;
@@ -14,7 +16,7 @@ class DropDetectionService {
 
     this.onDropCallback = null;
   }
-
+  // begins listening to accelerometer data
   start(onDropDetected) {
     if (this.isMonitoring) return;
 
@@ -23,7 +25,7 @@ class DropDetectionService {
 
     Accelerometer.setUpdateInterval(100);
 
-    this.subscription = Accelerometer.addListener((data) => {
+    this.subscription = Accelerometer.addListener(data => {
       const totalForce = Math.sqrt(
         data.x * data.x + data.y * data.y + data.z * data.z,
       );
@@ -48,7 +50,7 @@ class DropDetectionService {
       }
     });
   }
-
+  // stops listening to accelerometer data
   stop() {
     if (this.subscription) {
       this.subscription.remove();
@@ -59,5 +61,5 @@ class DropDetectionService {
     this.freeFallDetected = false;
   }
 }
-
+// exports so it can be used across the app
 export default new DropDetectionService();

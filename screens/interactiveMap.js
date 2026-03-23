@@ -1,3 +1,4 @@
+// imports
 import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import {
@@ -15,6 +16,8 @@ import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors } from '../services/theme';
 
+// Notification setup
+// Defines how the notifications behave when triggered
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -22,17 +25,20 @@ Notifications.setNotificationHandler({
     shouldSetBadge: true,
   }),
 });
+
+// Safe zone score - helper used to rate shelter availability
 export function getSafeZoneScore(nearbySafeZones = []) {
   return nearbySafeZones.length > 3 ? 90 : 60;
 }
 
+// main screen component
 export default function InteractiveMap({ navigation }) {
-  console.log('MAP RENDERING');
+  //states
   const [userLocation, setUserLocation] = useState({
-    lat: 28.5383,
-    lng: -81.3792,
+    lat: 51.5074,
+    lng: -0.1278,
   });
-  const [locationName, setLocationName] = useState('Orlando, FL');
+  const [locationName, setLocationName] = useState('London, UK');
   const [locationLoading, setLocationLoading] = useState(true);
   const [disasters, setDisasters] = useState([]);
   const [customSafeZones, setCustomSafeZones] = useState([]);
@@ -43,7 +49,8 @@ export default function InteractiveMap({ navigation }) {
   const [selectedSafeZoneCoords, setSelectedSafeZoneCoords] = useState(null);
 
   const colors = darkMode ? darkColors : lightColors;
-
+  // initial load
+  // runs once when the screen opens
   useEffect(() => {
     loadSettings();
     getCurrentLocation();
@@ -51,7 +58,8 @@ export default function InteractiveMap({ navigation }) {
     loadCustomSafeZones();
     setupNotifications();
   }, []);
-
+  // load settings
+  // .oads the dark mode preferences from local storage
   const loadSettings = async () => {
     try {
       const dark = await AsyncStorage.getItem('darkMode');
@@ -60,7 +68,7 @@ export default function InteractiveMap({ navigation }) {
       console.error('Failed to load dark mode', e);
     }
   };
-
+  // notifications - request/confirm notification permissions
   const setupNotifications = async () => {
     try {
       const { status: existingStatus } =
@@ -76,7 +84,7 @@ export default function InteractiveMap({ navigation }) {
       console.error('Notifications setup error:', err);
     }
   };
-
+  // location - gets the users current device location and converts it into a readable name
   const getCurrentLocation = async () => {
     try {
       setLocationLoading(true);
@@ -111,7 +119,7 @@ export default function InteractiveMap({ navigation }) {
       setLocationLoading(false);
     }
   };
-
+  // fetch disaster data - gets currently sctive disaster events from the NASA EONET API
   const fetchDisasters = async () => {
     try {
       const res = await fetch(
@@ -123,7 +131,7 @@ export default function InteractiveMap({ navigation }) {
       console.error('Error fetching disasters:', err);
     }
   };
-
+  // load saved safe zones - pull custom shelters from AsyncStorage
   const loadCustomSafeZones = async () => {
     try {
       const stored = await AsyncStorage.getItem('customSafeZones');
@@ -132,6 +140,8 @@ export default function InteractiveMap({ navigation }) {
       console.error('Error loading custom safe zones:', err);
     }
   };
+  // Map long press - if the user long presses the map save the tapped coordinates and
+  // open the modal so a user can create a custom shelter
   const handleMapLongPress = event => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
 
@@ -143,7 +153,7 @@ export default function InteractiveMap({ navigation }) {
     setNewSafeName('');
     setAddModalVisible(true);
   };
-
+  // add a safe zone - saves a custom safe zone at the selected map location or the users current location
   const addCustomSafeZone = async () => {
     if (!newSafeName.trim()) {
       Alert.alert(
@@ -181,7 +191,7 @@ export default function InteractiveMap({ navigation }) {
       `${zone.location} added to your safe zones.`,
     );
   };
-
+  // calculate distance using the Haversine formula
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -193,6 +203,7 @@ export default function InteractiveMap({ navigation }) {
         Math.sin(dLon / 2) ** 2;
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
+  // Nearby safe zones - filters custom safe zones to show those within 10km
   const nearbySafeZones = customSafeZones.filter(zone => {
     const distance = calculateDistance(
       userLocation.lat,
@@ -202,14 +213,14 @@ export default function InteractiveMap({ navigation }) {
     );
     return distance <= 10;
   });
-
+  //UI
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MapView
         provider={PROVIDER_DEFAULT}
         style={StyleSheet.absoluteFillObject}
-        showsUserLocation
-        followsUserLocation
+        showsUserLocation={false}
+        followsUserLocation={false}
         onLongPress={handleMapLongPress}
         initialRegion={{
           latitude: userLocation.lat,
@@ -346,7 +357,7 @@ export default function InteractiveMap({ navigation }) {
     </View>
   );
 }
-
+// styles
 const styles = StyleSheet.create({
   container: { flex: 1 },
   floatingButton: {

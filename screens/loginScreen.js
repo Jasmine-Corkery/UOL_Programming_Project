@@ -1,3 +1,4 @@
+// Imports
 import React, { useState } from 'react';
 import {
   View,
@@ -9,11 +10,11 @@ import {
 } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+// Login screen component
 export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-
+  // Login handler
   const handleLogin = async () => {
     if (!username || !password) {
       Alert.alert('Error', 'Please enter both username and password.');
@@ -21,6 +22,7 @@ export default function LoginScreen({ navigation }) {
     }
     try {
       const storedUsers = JSON.parse(await AsyncStorage.getItem('users')) || {};
+      // check if the username exists and password matches
       if (
         storedUsers[username] &&
         storedUsers[username].password === password
@@ -34,7 +36,7 @@ export default function LoginScreen({ navigation }) {
       console.error('Login error', e);
     }
   };
-
+  // Registration handler
   const handleRegister = async () => {
     if (!username || !password) {
       Alert.alert('Error', 'Please enter both username and password.');
@@ -48,7 +50,7 @@ export default function LoginScreen({ navigation }) {
         Alert.alert('Error', 'Username already exists.');
         return;
       }
-
+      // Save new user with initial stats
       storedUsers[username] = {
         password,
         stats: { points: 0, level: 1, badges: [] },
@@ -59,7 +61,7 @@ export default function LoginScreen({ navigation }) {
       console.error('Registration error', e);
     }
   };
-
+  // UI
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
@@ -95,7 +97,7 @@ export default function LoginScreen({ navigation }) {
     </View>
   );
 }
-
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
